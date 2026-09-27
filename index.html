@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d1011">
+  <meta name="description" content="圈住币安：黑金夜市里的 3D 套圈小游戏。真实瞄准与投掷、轻松原创音乐，把 18 款币安周边收入收藏。">
+  <title>圈住币安 · BINANCE MERCH / LUCKY LOOP</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1011'/%3E%3Cpath d='m32 10 13 13-6 6-7-7-7 7-6-6Zm0 44L19 41l6-6 7 7 7-7 6 6ZM10 32l7-7 7 7-7 7Zm30 0 7-7 7 7-7 7Zm-14 0 6-6 6 6-6 6Z' fill='%23f0b90b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="brand" href="#play" aria-label="圈住币安，回到游戏">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="-3.3 -3.3 6.6 6.6"><g fill="currentColor" transform="scale(1,-1)"><polygon points="1.84252,1.169291 0,3.011811 -1.84252,1.145669 -1.181102,.507874 0,1.665354 1.181102,.507874"/><polygon points="-2.338583,.649606 -3,.035433 -3,-.035433 -2.362205,-.673228 -1.700787,-.011811"/><polygon points="-.023622,.673228 -.685039,-.011811 0,-.673228 .661417,.011811"/><polygon points="2.338583,.673228 1.677165,.011811 2.338583,-.673228 3,-.011811"/><polygon points="-1.84252,-1.145669 -.023622,-3.011811 1.84252,-1.169291 1.181102,-.507874 0,-1.665354 -1.181102,-.507874"/></g></svg></span>
+        <strong>圈住币安</strong><span class="brand-caption">MERCH ARCADE<i></i></span>
+      </a>
+      <nav class="main-nav" aria-label="主要导航"><a class="nav-link active" href="#play">去套圈</a><button class="nav-link" id="collection-btn" type="button">我的收藏</button><button class="nav-link" id="help-btn" type="button" aria-label="怎么玩" title="怎么玩">怎么玩</button></nav>
+      <div class="header-actions"><span class="header-note">GOOD AIM. GREAT MERCH.</span><button class="icon-btn" id="sound-btn" type="button" aria-label="切换游戏声音" title="声音开关" aria-pressed="true">声音 开</button><button class="icon-btn" id="pause-btn" type="button" aria-label="暂停游戏" title="暂停 / 继续（P）">暂停</button></div>
+    </header>
+
+    <main id="play">
+      <h1 class="sr-only">把心动周边，圈回家。</h1>
+      <div class="game-layout">
+        <section class="game-column" aria-label="3D 套圈游戏">
+          <div class="game-frame"><div class="scene-viewport">
+            <div id="scene" role="application" tabindex="0" aria-label="3D 套圈场景。左右方向键调整方向，上下方向键调整距离，按住空格蓄力后松开投圈。"></div>
+            <div class="scene-topbar"><span class="scene-tag"><i></i>THE MERCH NIGHT MARKET</span><div class="wind-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h12a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h5"/></svg><span id="wind-label">微风 · 0.0</span></div></div>
+            <div class="combo-badge" id="combo-label" aria-live="polite">好运，从第一圈开始</div>
+            <span class="scene-signature">COLLECT THE NEXT YOU.</span>
+            <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+            <div class="game-overlay" id="overlay">
+              <div class="overlay-symbol" aria-hidden="true">◎</div><div class="overlay-text"><span class="overlay-kicker">A LITTLE AIM. A LOT OF POSSIBILITIES.</span><h2 id="overlay-title">你的周边摊，开张了</h2><p id="overlay-copy">7 只圈，3 轮夜市，把心动周边收入收藏。</p></div><div class="overlay-buttons"><button class="primary-btn" id="overlay-action" type="button">开始套圈 <span aria-hidden="true">↗</span></button><button class="text-btn" id="overlay-secondary" type="button">先练练手 <span aria-hidden="true">→</span></button></div>
+            </div>
+          </div></div>
+
+          <div class="throw-console">
+            <div class="throw-instruction"><strong id="status-text" aria-live="polite">瞄准 · 蓄力 · 松手</strong><span>把心动周边，圈回家。</span></div>
+            <div class="charge-control"><div class="charge-label"><label for="charge-fill">投掷力度</label><strong id="charge-value">0<span>%</span></strong></div><div class="charge-track" role="img" aria-label="投掷力度条"><span id="charge-zone" hidden></span><span id="charge-fill"></span></div><div class="charge-hint"><span>轻一点</span><span>远一点</span></div></div>
+            <button class="start-btn" id="start-btn" type="button">开始套圈 <span aria-hidden="true">↗</span></button>
+            <div class="console-keys"><span><kbd>←</kbd><kbd>→</kbd> 瞄准 <kbd>↑</kbd><kbd>↓</kbd> 距离</span><span><kbd class="wide-key">SPACE</kbd> 蓄力 · 松开投掷 <kbd>P</kbd> 暂停</span></div>
+          </div>
+        </section>
+
+        <aside class="game-sidebar" aria-label="得分与周边收藏">
+          <div class="sidebar-round"><div class="round-badge"><span class="mini-ring" aria-hidden="true"></span><span id="round-label">第 1 / 3 轮</span><span class="badge-divider"></span><span>夜市漫游</span></div><span class="round-ellipsis" aria-hidden="true">•••</span></div>
+          <section class="score-panel"><span class="eyebrow">YOUR SCORE</span><div class="score-main"><strong id="score">0000</strong><span>分</span></div><div class="best-row"><span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 6 3 3 3-5 3 5 3-3-1 9H5L4 6Zm2 12h8"/></svg>最佳纪录</span><strong id="best-score">0</strong></div><div class="goal-block"><div class="goal-label"><span>本轮小目标</span><strong id="round-goal">800 分</strong></div><div class="goal-track"><span id="goal-progress"></span></div></div></section>
+          <div class="rings-panel"><span class="rings-label"><span class="rings-icon" aria-hidden="true">◎</span>剩余套圈</span><span><strong id="rings-left">7</strong><small>个</small></span></div>
+          <section class="mission-panel"><span class="mission-icon" aria-hidden="true">✦</span><p id="mission-text">连续套中 3 次，让好运加倍。</p></section>
+          <section class="prizes-panel" id="collection"><div class="section-topline"><h2>币安周边图鉴</h2><button id="shuffle-btn" class="shuffle-btn" type="button" title="自由练习模式更换场上周边">换一批 <span aria-hidden="true">↻</span></button></div><div class="collection-subline"><span>18 款周边 · MERCH COLLECTION</span><span>向下探索 ↓</span></div><div id="collection-list" class="collection-list" aria-label="币安周边收藏图鉴"></div><div class="selected-prize"><span class="target-mark" aria-hidden="true">⌖</span><span>瞄准 <strong id="prize-name">选择心动周边</strong></span><strong id="prize-value">—</strong></div></section>
+          <div class="game-settings"><label class="sr-only" for="mode-select">游戏模式</label><div class="select-wrap"><select id="mode-select"><option value="classic">经典夜市 · 三轮挑战</option><option value="daily">每日挑战 · 固定场地</option><option value="practice">自由练习 · 无限套圈</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></div><div class="music-controls"><button id="music-btn" class="music-btn" type="button" aria-label="切换背景音乐" aria-pressed="true"><span aria-hidden="true">♫</span> 音乐 开</button><label class="volume-label" for="music-volume">音量</label><input id="music-volume" type="range" min="0" max="100" step="1" value="72" aria-label="背景音乐音量"></div><p class="local-note">周边主题小游戏 · 收藏记录保存在此设备</p></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <script src="./three.min.js"></script>
+  <script src="./cannon.min.js"></script>
+  <script src="./merch.js"></script>
+  <script src="./physics.js"></script>
+  <script src="./audio.js"></script>
+  <script src="./merch-thumbnails.js"></script>
+  <script src="./game.js"></script>
+</body>
+</html>
+
+
+
