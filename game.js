@@ -45,7 +45,7 @@
   renderer.shadowMap.type = T.PCFSoftShadowMap;
   renderer.outputColorSpace = T.SRGBColorSpace;
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.0;
   renderer.setClearColor(0x000000,0);
   renderer.domElement.setAttribute('aria-label', '三维套圈摊位，鼠标或手指控制方向，按住蓄力，松开投掷，圈稳定套住周边才计分');
   renderer.domElement.setAttribute('tabindex', '0');
@@ -55,16 +55,16 @@
   camera.position.set(0, 11.8, 18.5);
   camera.lookAt(0, 0.8, -0.1);
   const eggs=window.LuckySecretVisuals.create({mount:mount.parentElement,camera,THREE:T,physics,npcs});
-  scene.add(new T.HemisphereLight(0xffefcf, 0x2a2622, 1.25));
-  const keyLight = new T.DirectionalLight(0xffedc8, 4.0);
+  scene.add(new T.HemisphereLight(0xffefcf, 0x2a2622, .85));
+  const keyLight = new T.DirectionalLight(0xffedc8, 2.8);
   keyLight.position.set(-7, 13, 9);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.set(2048, 2048);
   Object.assign(keyLight.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 });
   keyLight.shadow.bias = -0.0008;
-  keyLight.shadow.normalBias = 0.035;
+  keyLight.shadow.normalBias = 0.008;
   scene.add(keyLight);
-  const rim = new T.DirectionalLight(0xffd572, 2.5); rim.position.set(8, 6, -8); scene.add(rim);
+  const rim = new T.DirectionalLight(0xffd572, 1.35); rim.position.set(8, 6, -8); scene.add(rim);
   // An original studio environment supplies real material reflections without a network HDRI.
   const envCanvas=document.createElement('canvas');envCanvas.width=1024;envCanvas.height=512;const ec=envCanvas.getContext('2d');
   const eg=ec.createLinearGradient(0,0,0,512);eg.addColorStop(0,'#38332d');eg.addColorStop(.5,'#19191b');eg.addColorStop(1,'#08090b');ec.fillStyle=eg;ec.fillRect(0,0,1024,512);
@@ -107,12 +107,13 @@
   const targets=[], prizeGroup=new T.Group();scene.add(prizeGroup);
   function makePrize(type) {
     const toy=window.LuckyPrizeVisuals.create(type,T,window.LuckyMerchThumbnails[type.id]),scale=1.18;
-    const c={shape:type.shape,radius:type.radius,height:type.height,halfExtents:{...type.halfExtents}};
+    const c=toy.userData.collider;
+    Object.assign(type,{shape:c.shape,radius:c.radius,height:c.height,halfExtents:{...c.halfExtents}});
     toy.scale.setScalar(scale);
     toy.userData.collider={...c,radius:c.radius*scale,height:c.height*scale,halfExtents:{x:c.halfExtents.x*scale,y:c.height/2*scale,z:c.halfExtents.z*scale}};
     return toy;
   }
-  function disposePrize(group){group.userData.dispose?.();const geometries=new Set(),materials=new Set(),textures=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:o.material?[o.material]:[])){materials.add(m);for(const key of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap'])if(m[key])textures.add(m[key]);}});textures.forEach(t=>{if(!t.userData?.shared&&t!==shadowMap)t.dispose();});materials.forEach(m=>{if(!m.userData?.shared)m.dispose();});geometries.forEach(g=>g.dispose());}
+  function disposePrize(group){group.userData.dispose?.();const geometries=new Set(),materials=new Set(),textures=new Set();group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of (Array.isArray(o.material)?o.material:o.material?[o.material]:[])){materials.add(m);for(const key of ['map','bumpMap','normalMap','roughnessMap','metalnessMap','emissiveMap'])if(m[key])textures.add(m[key]);}});textures.forEach(t=>{if(!t.userData?.shared&&t!==shadowMap)t.dispose();});materials.forEach(m=>{if(!m.userData?.shared)m.dispose();});geometries.forEach(g=>g.dispose());}
   const layout=[[-2.9,2.45,0],[0,2.45,1],[2.9,2.45,2],[-2.9,.0,3],[0,.0,4],[2.9,.0,5],[-2.9,-2.5,6],[0,-2.5,7],[2.9,-2.5,8]];
   for(let i=0;i<layout.length;i++){
     const [x,z,k]=layout[i],type=types[k%types.length],g=new T.Group();g.position.set(x,.065,z);prizeGroup.add(g);
@@ -351,7 +352,7 @@
   new ResizeObserver(resize).observe(mount);resize();
   const manualTest=new URLSearchParams(location.search).has('test')&&new URLSearchParams(location.search).has('manual');
   let last=performance.now();function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!manualTest)update(dt);renderer.render(scene,camera);requestAnimationFrame(frame);}requestAnimationFrame(frame);
-  function snapshot(){return {phase:state.phase,mode:state.mode,round:state.round,score:state.score,roundScore:state.roundScore,ringsRemaining:state.ringsRemaining,combo:state.combo,maxCombo:state.maxCombo,hits:state.hits,throws:state.throws,paused:state.paused,time:state.time,charge:state.charge,charging:state.charging,wind:state.wind,flight:state.flight?{id:state.flight.id,t:state.flight.t,charge:state.flight.charge,body:physics.getRing(state.flight.id)}:null,aim:{x:aim.x,y:aim.y,z:aim.z},lastResult:state.lastResult,targets:targets.map(p=>({id:p.id,type:p.type.id,x:p.x,z:p.z,points:p.points,caught:p.caught,moving:p.moving,collider:p.toy.userData.collider})),events:state.events,collection:save.collection,best:save.best,physics:physics.snapshot(),audio:audio.getState(),npc:npcs?.getState(),music:save.music,merchCount:types.length,coordinateSystem:'x: left to right; y: up; z: far (-) to near (+). Board x [-5,5], z [-4,4].'};}
+  function snapshot(){return {phase:state.phase,mode:state.mode,round:state.round,score:state.score,roundScore:state.roundScore,ringsRemaining:state.ringsRemaining,combo:state.combo,maxCombo:state.maxCombo,hits:state.hits,throws:state.throws,paused:state.paused,time:state.time,charge:state.charge,charging:state.charging,wind:state.wind,flight:state.flight?{id:state.flight.id,t:state.flight.t,charge:state.flight.charge,body:physics.getRing(state.flight.id)}:null,aim:{x:aim.x,y:aim.y,z:aim.z},lastResult:state.lastResult,targets:targets.map(p=>({id:p.id,type:p.type.id,x:p.x,z:p.z,points:p.points,caught:p.caught,moving:p.moving,collider:p.toy.userData.collider,solidModel:p.toy.userData.solidModel})),events:state.events,collection:save.collection,best:save.best,physics:physics.snapshot(),audio:audio.getState(),npc:npcs?.getState(),music:save.music,merchCount:types.length,coordinateSystem:'x: left to right; y: up; z: far (-) to near (+). Board x [-5,5], z [-4,4].'};}
   window.render_game_to_text=()=>JSON.stringify(snapshot());
   window.advanceTime=ms=>{for(let t=0;t<ms;t+=1000/60)update(Math.min(1000/60,ms-t)/1000);renderer.render(scene,camera);};
   if(new URLSearchParams(location.search).has('test'))window.__gameTest={launchVelocity,physics, audio, start,aim:(x,z,y=.1)=>aim.set(clamp(x,-12,12),y,clamp(z,-3.5,4.65)),secretTargets:()=>eggs.getTargets(),renderCanvas:()=>{renderer.render(scene,camera);return renderer.domElement},toss,snapshot,targets:()=>snapshot().targets,project:(x,y,z)=>{const v=new T.Vector3(x,y,z).project(camera),r=renderer.domElement.getBoundingClientRect();return {x:r.left+(v.x+1)*r.width/2,y:r.top+(1-v.y)*r.height/2};},pause,nextRound,advance:window.advanceTime};

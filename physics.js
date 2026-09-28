@@ -67,6 +67,22 @@
     const rings = new Map(), targetMap = new Map(), specialMap = new Map();
     let time = 0, accumulator = 0, wind = 0;
 
+    function correctCompoundBounds(body){
+      // Cannon 0.6.2 computeAABB rotates child offsets by the child orientation.
+      // Offsets belong to the parent body; a rotated strap/cylinder must not
+      // orbit its own orientation. Keep broadphase and inertia in that frame.
+      const p=new C.Vec3(),q=new C.Quaternion(),bounds=new C.AABB();
+      body.computeAABB=function(){
+        for(let i=0;i<this.shapes.length;i++){
+          this.quaternion.vmult(this.shapeOffsets[i],p);p.vadd(this.position,p);
+          this.quaternion.mult(this.shapeOrientations[i],q);
+          this.shapes[i].calculateWorldAABB(p,q,bounds.lowerBound,bounds.upperBound);
+          if(i===0)this.aabb.copy(bounds);else this.aabb.extend(bounds);
+        }
+        this.aabbNeedsUpdate=false;
+      };
+    }
+
     function normalizedTarget(t) {
       const radius = Math.max(.04, finite(t.radius, .28));
       const height = Math.max(.08, finite(t.height, .72));
@@ -75,6 +91,7 @@
       const typeId = String(t.typeId || t.merchId || t.id || 'prize');
       return {
         id: t.id, typeId, x: finite(t.x, 0), z: finite(t.z, 0), radius, height,
+        centerY: height * (typeId==='bag'?.245:typeId==='tote'?.35:.5),
         mass: Math.max(.06, Math.min(8, finite(t.mass, PRIZE_MASS[typeId] || .5))),
         caught: !!t.caught, moving: !!t.moving,
         shape: shape.type === 'box' ? 'box' : 'cylinder',
@@ -85,11 +102,21 @@
     function makeTarget(input) {
       const t = normalizedTarget(input);
       const body = new C.Body({mass:t.moving?0:t.mass,type:t.moving?C.Body.KINEMATIC:C.Body.DYNAMIC,material:SOFT_PRIZES.has(t.typeId)?clothMaterial:prizeMaterial,linearDamping:.035,angularDamping:.08,allowSleep:!t.moving,sleepSpeedLimit:.055,sleepTimeLimit:.7});
-      // Body origin is the envelope centre. Every part stays inside that
-      // envelope; graphics use bottomPosition + this body's quaternion.
-      const h=t.height,hx=t.halfX,hz=t.halfZ;
-      const box=(x,y,z,w,height,depth)=>body.addShape(new C.Box(new C.Vec3(w/2,height/2,depth/2)),new C.Vec3(x,y-h/2,z));
-      const cylinder=(y,height,bottom,top=bottom)=>body.addShape(new C.Cylinder(top,bottom,height,24),new C.Vec3(0,y-h/2,0),yCylinder);
+      correctCompoundBounds(body);
+      // Origin approximates the mass centre, below the empty handles of bags.
+      // All parts remain bottom-relative; graphics use bottomPosition + rotation.
+      const h=t.height,hx=t.halfX,hz=t.halfZ,cy=t.centerY;
+      const box=(x,y,z,w,height,depth)=>body.addShape(new C.Box(new C.Vec3(w/2,height/2,depth/2)),new C.Vec3(x,y-cy,z));
+      const cylinder=(y,height,bottom,top=bottom)=>body.addShape(new C.Cylinder(top,bottom,height,24),new C.Vec3(0,y-cy,0),yCylinder);
+      function ribbon(points,width,depth){
+        for(let i=1;i<points.length;i++){
+          const a=new C.Vec3(points[i-1][0]*hx,points[i-1][1]*h,points[i-1][2]*hz),b=new C.Vec3(points[i][0]*hx,points[i][1]*h,points[i][2]*hz),dx=b.x-a.x,dy=b.y-a.y;
+          // Ribbon width follows its XY tangent; it must not twist into Z as
+          // the arched path bends slightly toward the back of the bag.
+          const q=new C.Quaternion();q.setFromAxisAngle(new C.Vec3(0,0,1),Math.atan2(-dx,dy));
+          body.addShape(new C.Box(new C.Vec3(width/2,Math.hypot(dx,dy)/2,(depth+Math.abs(b.z-a.z))/2)),new C.Vec3((a.x+b.x)/2,(a.y+b.y)/2-cy,(a.z+b.z)/2),q);
+        }
+      }
       if(t.typeId==='bottle'){
         cylinder(h*.39,h*.78,t.radius);
         cylinder(h*.865,h*.17,t.radius*.62);
@@ -105,19 +132,31 @@
         box(0,h*.42,0,hx*2,h*.84,hz*2);
         box(0,h*.88,0,hx*.58,h*.08,hz*.42);
         const bow=Math.min(h*.07,hz*.35);
-        for(const x of [-hx*.23,hx*.23])body.addShape(new C.Sphere(bow),new C.Vec3(x,h*.93-h/2,0));
+        for(const x of [-hx*.23,hx*.23])body.addShape(new C.Sphere(bow),new C.Vec3(x,h*.93-cy,0));
       }else if(t.typeId==='suitcase'||t.typeId==='yellowcase'){
-        const wheel=Math.min(h*.075,hz*.27);
-        box(0,h*.505,0,hx*1.9,h*.81,hz*1.92);
-        for(const x of [-hx*.7,hx*.7])for(const z of [-hz*.62,hz*.62])body.addShape(new C.Sphere(wheel),new C.Vec3(x,wheel-h/2,z));
-        box(0,h*.975,0,hx*.72,h*.05,hz*.38);
-        for(const x of [-hx*.31,hx*.31])box(x,h*.933,0,hx*.1,h*.084,hz*.28);
+        const wheel=Math.min(h*.0432,hz*.27);
+        box(-hx*.056,h*.466,hz*.022,hx*1.842,h*.689,hz*1.75);
+        for(const x of [-hx*.779,hx*.667])for(const z of [-hz*.57,hz*.614]){
+          body.addShape(new C.Sphere(wheel),new C.Vec3(x,wheel-cy,z));
+          box(x,h*.11,z,hx*.12,h*.08,hz*.2);
+        }
+        box(-hx*.056,h*.979,-hz*.855,hx*.933,h*.033,hz*.27);
+        for(const x of [-hx*.474,hx*.362])box(x,h*.874,-hz*.855,hx*.09,h*.21,hz*.13);
+      }else if(t.typeId==='bag'){
+        box(0,h*.2085,0,hx*1.70,h*.417,hz*2);
+        // Sampled from the sewn strap in cloth-models.js, normalized to its
+        // measured width/height/depth. The centre of its arch is genuinely empty.
+        ribbon([[-.81793,.32805,-.1259],[-.87561,.46146,-.14601],[-.93328,.59488,-.16612],[-.91815,.71124,-.2084],[-.80852,.79902,-.2865],[-.63895,.87277,-.38286],[-.44211,.92621,-.45589],[-.17904,.96124,-.49733],[.11853,.97058,-.50926],[.38664,.94957,-.48339],[.60107,.89876,-.40598],[.79057,.82227,-.29659],[.91472,.72994,-.2084],[.93501,.60853,-.16411],[.87765,.46829,-.145],[.82028,.32805,-.1259]],hx*.1214,hz*.077);
+      }else if(t.typeId==='tote'){
+        box(0,h*.3125,0,hx*2,h*.625,hz*2);
+        const path=[[-.56062,.5842,.9398],[-.58562,.66868,.90668],[-.61061,.75317,.87356],[-.5728,.82726,.83746],[-.42572,.8964,.78558],[-.21286,.95466,.73059],[0,.97917,.70503],[.21286,.95466,.73059],[.42572,.8964,.78558],[.5728,.82726,.83746],[.61061,.75317,.87356],[.58562,.66868,.90668],[.56062,.5842,.9398]];
+        for(const sign of [-1,1])ribbon(path.map(p=>[p[0],p[1],sign*(p[2]+.00532)-.00532]),hx*.117,hz*.0662);
       }else if(t.shape==='box')box(0,h/2,0,hx*2,h,hz*2);
       else cylinder(h/2,h,t.radius);
-      body.position.set(t.x,TARGET_BOTTOM+h/2,t.z);
+      body.position.set(t.x,TARGET_BOTTOM+cy,t.z);
       body._lucky = { kind: 'target', targetId: t.id };
       world.addBody(body);
-      const record = { data: t, body, desired: new C.Vec3(t.x,TARGET_BOTTOM+h/2,t.z), consumed: !!t.caught };
+      const record = { data: t, body, desired: new C.Vec3(t.x,TARGET_BOTTOM+cy,t.z), consumed: !!t.caught };
       targetMap.set(t.id, record);
       if(t.caught)freezePrize(record);
       return record;
@@ -141,7 +180,7 @@
         t.data.moving = next.moving;
         if (next.caught && !t.consumed) freezePrize(t);
         if (t.consumed) continue;
-        t.desired.set(next.x,TARGET_BOTTOM+t.data.height/2,next.z);
+        t.desired.set(next.x,TARGET_BOTTOM+t.data.centerY,next.z);
         const bodyType=next.moving?C.Body.KINEMATIC:C.Body.DYNAMIC;
         t.body.allowSleep=!next.moving;
         if(t.body.type!==bodyType){t.body.type=bodyType;t.body.mass=next.moving?0:t.data.mass;t.body.updateMassProperties();t.body.wakeUp();}
@@ -301,7 +340,7 @@
         if(targetNormal.y<.55)continue;
         b.position.vsub(t.body.position,offset);
         const planeDistance=normal.dot(offset),crossingY=planeDistance/targetNormal.y;
-        if(crossingY < -t.data.height/2 + .004 || crossingY > t.data.height/2 - .015)continue;
+        if(crossingY < -t.data.centerY + .004 || crossingY > t.data.height-t.data.centerY - .015)continue;
         let contains = true;
         const count = t.data.shape === 'box' ? 4 : 32;
         for (let i = 0; i < count; i++) {
@@ -378,7 +417,7 @@
     }
     function snapshot() {
       const prizes=Array.from(targetMap.values(),t=>{
-        t.body.quaternion.vmult(new C.Vec3(0,-t.data.height/2,0),offset);
+        t.body.quaternion.vmult(new C.Vec3(0,-t.data.centerY,0),offset);
         t.body.position.vadd(offset,worldPoint);
         t.body.quaternion.vmult(up,targetUp);
         return {id:t.data.id,typeId:t.data.typeId,position:vector(t.body.position),quaternion:rotation(t.body.quaternion),bottomPosition:vector(worldPoint),velocity:vector(t.body.velocity),angularVelocity:vector(t.body.angularVelocity),mass:t.data.mass,dynamic:t.body.type===C.Body.DYNAMIC,moving:t.data.moving,sleeping:t.body.sleepState===C.Body.SLEEPING,caught:t.data.caught||t.consumed,upright:targetUp.y>=.90,upY:targetUp.y,shapeCount:t.body.shapes.length};

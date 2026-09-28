@@ -36,140 +36,26 @@
   // These dimensions are available before create(); create() also exposes the
   // exact measured envelope on result.userData.collider and its type descriptor.
   const colliderSpecs = {
-  "bottle": [
-    "cylinder",
-    0.21823529411764708,
-    1.12,
-    0.21823529411764708,
-    0.21823529411764708
-  ],
-  "hat": [
-    "cylinder",
-    0.38,
-    0.5357854406130268,
-    0.38,
-    0.38
-  ],
-  "passport": [
-    "box",
-    0.38,
-    1.0723287671232877,
-    0.38,
-    0.045
-  ],
-  "bag": [
-    "box",
-    0.38,
-    0.5185559566787004,
-    0.38,
-    0.23
-  ],
-  "hoodie": [
-    "box",
-    0.38,
-    0.8236279069767442,
-    0.38,
-    0.12
-  ],
-  "keyboard": [
-    "box",
-    0.38,
-    0.462880658436214,
-    0.38,
-    0.12
-  ],
-  "sneaker": [
-    "box",
-    0.38,
-    0.47907142857142854,
-    0.38,
-    0.19
-  ],
-  "gift": [
-    "box",
-    0.38,
-    0.6992,
-    0.38,
-    0.21
-  ],
-  "suitcase": [
-    "box",
-    0.38,
-    0.9585585585585586,
-    0.38,
-    0.23
-  ],
-  "tote": [
-    "box",
-    0.38,
-    1.0824242424242425,
-    0.38,
-    0.12
-  ],
-  "tshirt": [
-    "box",
-    0.38,
-    0.6939130434782609,
-    0.38,
-    0.09
-  ],
-  "socks": [
-    "box",
-    0.38,
-    0.9008780487804878,
-    0.38,
-    0.1
-  ],
-  "umbrella": [
-    "cylinder",
-    0.22504672897196265,
-    1.12,
-    0.22504672897196265,
-    0.22504672897196265
-  ],
-  "massager": [
-    "box",
-    0.38,
-    0.6719313304721031,
-    0.38,
-    0.23
-  ],
-  "racket": [
-    "box",
-    0.32051446945337625,
-    1.12,
-    0.32051446945337625,
-    0.04
-  ],
-  "towel": [
-    "box",
-    0.38,
-    0.5236974789915966,
-    0.38,
-    0.16
-  ],
-  "pajamas": [
-    "box",
-    0.38,
-    0.7922033898305084,
-    0.38,
-    0.12
-  ],
-  "tennis": [
-    "cylinder",
-    0.38,
-    0.7144,
-    0.38,
-    0.38
-  ],
-  "yellowcase": [
-    "box",
-    0.38,
-    0.8563380281690142,
-    0.38,
-    0.23
-  ]
-};
+    "bottle": ["cylinder",0.23603070169241241,1.143048239241541,0.23499999999999996,0.23603070169241241],
+    "hat": ["cylinder",0.33819883654246075,0.43450499278355004,0.33819883654246075,0.3043789528882147],
+    "passport": ["box",0.3,0.7704620014003635,0.3,0.12439731835725683],
+    "bag": ["box",0.38,0.7836112432589752,0.38,0.13315989355773156],
+    "hoodie": ["box",0.33111705252331053,0.2403932850244729,0.3120680975817221,0.33111705252331053],
+    "keyboard": ["box",0.38,0.3169044821383819,0.38,0.23425915901027283],
+    "sneaker": ["box",0.38,0.23198099324830665,0.38,0.14882337645256333],
+    "gift": ["box",0.3487453390587912,0.5500522697718524,0.3487453390587912,0.29223567284773566],
+    "suitcase": ["box",0.3316620403182796,1.16,0.3316620403182796,0.1946387538715757],
+    "tote": ["box",0.38,1.0670219622751933,0.38,0.15386251744677562],
+    "tshirt": ["box",0.34603861639835815,0.10529030322205907,0.34603861639835815,0.2954357391398509],
+    "socks": ["box",0.34042355030205407,0.7967212109604451,0.34042355030205407,0.30188873181976306],
+    "umbrella": ["cylinder",0.14511914018188948,1.16,0.14511914018188948,0.1289248293940864],
+    "massager": ["box",0.32500000000000007,0.6613788853637753,0.32500000000000007,0.11361529777577964],
+    "racket": ["box",0.3879608069365926,0.3214814757254545,0.23772129118172802,0.3879608069365926],
+    "towel": ["box",0.38,0.365754817863877,0.38,0.19763593237452814],
+    "pajamas": ["box",0.32807053074054443,0.1522687697120878,0.31526929260493725,0.32807053074054443],
+    "tennis": ["cylinder",0.35,0.648458904109589,0.35,0.19238013698630135],
+    "yellowcase": ["box",0.3316620403182796,1.16,0.3316620403182796,0.18946584845275632]
+  };
   const types = [
     {id:'bottle',name:'提环水瓶',color:YELLOW,points:100},
     {id:'hat',name:'品牌渔夫帽',color:YELLOW,points:100},
@@ -192,7 +78,7 @@
     {id:'yellowcase',name:'亮黄印字行李箱',color:YELLOW,points:300}
   ].map(t=>{const [shape,radius,height,x,z]=colliderSpecs[t.id];return Object.assign(t,{icon:icon(t.id),shape,radius,height,halfExtents:{x,y:height/2,z}});});
 
-  function create(type, THREE) {
+  function create(type, THREE, options = {}) {
     const id = typeof type === 'string' ? type : type.id;
     const g = new THREE.Group(); g.name = 'BinanceMerch:'+id;
     const mat = (color,roughness=.65,metalness=.03) => new THREE.MeshStandardMaterial({color,roughness,metalness});
@@ -416,14 +302,14 @@
     g.updateMatrixWorld(true);
     let bounds = new THREE.Box3().setFromObject(g);const size=new THREE.Vector3();bounds.getSize(size);
     // A conservative horizontal envelope leaves room inside the 1.03 ring hole.
-    const fit=Math.min(1,.78/Math.hypot(size.x,size.z));g.scale.x*=fit;g.scale.z*=fit;g.updateMatrixWorld(true);
+    const fit=options.raw ? 1 : Math.min(1,.78/Math.hypot(size.x,size.z));g.scale.x*=fit;g.scale.z*=fit;g.updateMatrixWorld(true);
     bounds=new THREE.Box3().setFromObject(g);bounds.getSize(size);const center=bounds.getCenter(new THREE.Vector3());
     g.position.set(-center.x,-bounds.min.y,-center.z);
     const result=new THREE.Group();result.name='BinanceMerch:'+id;result.add(g);
     const descriptor=types.find(t=>t.id===id),shape=['bottle','hat','umbrella','tennis'].includes(id)?'cylinder':'box';
     const radius=Math.max(.17,Math.min(.35,Math.max(size.x,size.z)/2));
     const collider={shape,radius,height:size.y,halfExtents:{x:size.x/2,y:size.y/2,z:size.z/2}};
-    if(descriptor)Object.assign(descriptor,collider);
+    if(descriptor && !options.raw)Object.assign(descriptor,collider);
     result.userData.merchId=id;result.userData.source='Original procedural miniature; see RESEARCH.md';result.userData.collider=collider;
     return result;
   }
