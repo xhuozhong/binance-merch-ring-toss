@@ -36,25 +36,140 @@
   // These dimensions are available before create(); create() also exposes the
   // exact measured envelope on result.userData.collider and its type descriptor.
   const colliderSpecs = {
-    bottle:['cylinder',.228375,1.109,.228,.228375],
-    hat:['cylinder',.289885,.60705,.289885,.260896],
-    passport:['box',.309165,.794,.309165,.128198],
-    bag:['box',.35,1.08993,.353762,.164172],
-    hoodie:['box',.35,.92055,.369812,.123852],
-    keyboard:['box',.35,.611171,.35996,.150096],
-    sneaker:['box',.298632,.606259,.250837,.298632],
-    gift:['box',.298925,.681364,.298925,.250488],
-    suitcase:['box',.312684,1.14605,.312684,.233085],
-    tote:['box',.316709,1.020805,.316709,.107],
-    tshirt:['box',.35,.775,.383665,.070007],
-    socks:['box',.2305,.706,.224,.2305],
-    umbrella:['cylinder',.17,1.079742,.135079,.120005],
-    massager:['box',.33175,.675115,.33175,.115975],
-    racket:['box',.238,.98376,.238,.05],
-    towel:['box',.274781,.842903,.274781,.083],
-    pajamas:['box',.35,.880627,.379602,.089455],
-    tennis:['cylinder',.292,.541,.292,.1605]
-  };
+  "bottle": [
+    "cylinder",
+    0.21823529411764708,
+    1.12,
+    0.21823529411764708,
+    0.21823529411764708
+  ],
+  "hat": [
+    "cylinder",
+    0.38,
+    0.5357854406130268,
+    0.38,
+    0.38
+  ],
+  "passport": [
+    "box",
+    0.38,
+    1.0723287671232877,
+    0.38,
+    0.045
+  ],
+  "bag": [
+    "box",
+    0.38,
+    0.5185559566787004,
+    0.38,
+    0.23
+  ],
+  "hoodie": [
+    "box",
+    0.38,
+    0.8236279069767442,
+    0.38,
+    0.12
+  ],
+  "keyboard": [
+    "box",
+    0.38,
+    0.462880658436214,
+    0.38,
+    0.12
+  ],
+  "sneaker": [
+    "box",
+    0.38,
+    0.47907142857142854,
+    0.38,
+    0.19
+  ],
+  "gift": [
+    "box",
+    0.38,
+    0.6992,
+    0.38,
+    0.21
+  ],
+  "suitcase": [
+    "box",
+    0.38,
+    0.9585585585585586,
+    0.38,
+    0.23
+  ],
+  "tote": [
+    "box",
+    0.38,
+    1.0824242424242425,
+    0.38,
+    0.12
+  ],
+  "tshirt": [
+    "box",
+    0.38,
+    0.6939130434782609,
+    0.38,
+    0.09
+  ],
+  "socks": [
+    "box",
+    0.38,
+    0.9008780487804878,
+    0.38,
+    0.1
+  ],
+  "umbrella": [
+    "cylinder",
+    0.22504672897196265,
+    1.12,
+    0.22504672897196265,
+    0.22504672897196265
+  ],
+  "massager": [
+    "box",
+    0.38,
+    0.6719313304721031,
+    0.38,
+    0.23
+  ],
+  "racket": [
+    "box",
+    0.32051446945337625,
+    1.12,
+    0.32051446945337625,
+    0.04
+  ],
+  "towel": [
+    "box",
+    0.38,
+    0.5236974789915966,
+    0.38,
+    0.16
+  ],
+  "pajamas": [
+    "box",
+    0.38,
+    0.7922033898305084,
+    0.38,
+    0.12
+  ],
+  "tennis": [
+    "cylinder",
+    0.38,
+    0.7144,
+    0.38,
+    0.38
+  ],
+  "yellowcase": [
+    "box",
+    0.38,
+    0.8563380281690142,
+    0.38,
+    0.23
+  ]
+};
   const types = [
     {id:'bottle',name:'提环水瓶',color:YELLOW,points:100},
     {id:'hat',name:'品牌渔夫帽',color:YELLOW,points:100},
@@ -62,9 +177,9 @@
     {id:'bag',name:'黄带肩包',color:YELLOW,points:180},
     {id:'hoodie',name:'黄色卫衣',color:YELLOW,points:180},
     {id:'keyboard',name:'黑黄键盘',color:YELLOW,points:180},
-    {id:'sneaker',name:'中秋定制鞋',color:YELLOW,points:300},
+    {id:'sneaker',name:'黄白币安运动鞋',color:YELLOW,points:300},
     {id:'gift',name:'端午龙鳞礼盒',color:YELLOW,points:300},
-    {id:'suitcase',name:'黄带行李箱',color:YELLOW,points:300},
+    {id:'suitcase',name:'黑金交叉带行李箱',color:YELLOW,points:300},
     {id:'tote',name:'黄色帆布袋',color:YELLOW,points:100},
     {id:'tshirt',name:'品牌黑T恤',color:YELLOW,points:100},
     {id:'socks',name:'双条纹黄袜',color:YELLOW,points:100},
@@ -73,7 +188,8 @@
     {id:'racket',name:'网球拍·概念',color:YELLOW,points:300,concept:true},
     {id:'towel',name:'品牌海滩巾',color:YELLOW,points:100},
     {id:'pajamas',name:'黑黄滚边睡衣',color:YELLOW,points:180},
-    {id:'tennis',name:'品牌网球套装',color:YELLOW,points:180}
+    {id:'tennis',name:'品牌网球套装',color:YELLOW,points:180},
+    {id:'yellowcase',name:'亮黄印字行李箱',color:YELLOW,points:300}
   ].map(t=>{const [shape,radius,height,x,z]=colliderSpecs[t.id];return Object.assign(t,{icon:icon(t.id),shape,radius,height,halfExtents:{x,y:height/2,z}});});
 
   function create(type, THREE) {

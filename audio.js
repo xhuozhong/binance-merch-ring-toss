@@ -1,45 +1,12 @@
-/* Lucky Loop — original, locally synthesized music and game sounds. No media requests. */
+/* Lucky Loop — user-provided MP3 background music and original synthesized game effects. */
 (function (global) {
   'use strict';
-  const BPM = 78, BEAT = 60 / BPM, BARS = 16, BAR_BEATS = 4;
-  const LOOP_BEATS = BARS * BAR_BEATS, LOOP_SECONDS = LOOP_BEATS * BEAT;
-  const TICK_MS = 50, LOOKAHEAD = 0.16, STEP = 0.5;
-  const MUSIC_LEVEL = 0.22, SFX_LEVEL = 0.58, MASTER_LEVEL = 0.72;
-  const MAX_MUSIC_VOICES = 18, MAX_SFX_VOICES = 10, MAX_VOICES = 28;
-  const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
-  const mod = (n, d) => ((n % d) + d) % d;
-  const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
-
-  // Sixteen original bars: Cmaj9 / Am7 / Dm9 / G13, with a gentle F-major bridge.
-  const HARMONY = [
-    [36,[60,64,67,71]], [33,[60,64,67,69]], [38,[60,64,65,69]], [31,[59,64,65,69]],
-    [40,[59,62,67,71]], [33,[60,64,67,71]], [38,[60,65,69,72]], [31,[59,62,65,69]],
-    [41,[60,64,67,69]], [40,[59,62,67,71]], [33,[60,64,67,71]], [38,[60,64,65,69]],
-    [41,[60,64,65,69]], [31,[59,64,65,69]], [36,[60,64,67,71]], [36,[60,64,67,69]]
-  ];
-  // [beat within bar, MIDI note, duration in beats]. Space is part of the tune.
-  const MELODY = [
-    [[.5,76,.65],[1.5,79,.65],[3,74,.65]], [[.5,72,.65],[2,71,.45],[3,69,.65]],
-    [[.5,69,.6],[1.5,72,.6],[3,76,.6]], [[.5,74,.7],[2,71,.6],[3,69,.5]],
-    [[.5,71,.6],[2,74,.6],[3,76,.6]], [[.5,72,.7],[2,71,.45],[3,67,.7]],
-    [[.5,69,.6],[1.5,72,.55],[3,74,.65]], [[.5,71,.7],[2.5,67,.85]],
-    [[.5,69,.65],[1.5,72,.65],[3,76,.65]], [[.5,74,.55],[2,71,.65],[3,67,.6]],
-    [[.5,72,.55],[1.5,76,.55],[3,71,.7]], [[.5,69,.6],[2,72,.6],[3,74,.5]],
-    [[.5,72,.7],[2,69,.55],[3,67,.7]], [[.5,71,.65],[1.5,74,.6],[3,69,.55]],
-    [[.5,76,.6],[2,74,.6],[3,72,.7]], [[.5,71,.6],[2,69,.55],[3,67,.7]]
-  ];
-  const score = Array.from({ length: LOOP_BEATS / STEP }, () => []);
-  function add(beat, event) { score[Math.round(beat / STEP)].push(event); }
-  HARMONY.forEach(([root, chord], bar) => {
-    const base = bar * BAR_BEATS;
-    chord.forEach((midi, i) => add(base, { kind:'piano', midi, duration:1.7*BEAT, level:.088, offset:i*.012 }));
-    [chord[1], chord[3]].forEach((midi, i) => add(base+2.5, { kind:'piano', midi, duration:1.05*BEAT, level:.052, offset:i*.017 }));
-    add(base, { kind:'bass', midi:root, duration:1.7*BEAT, level:.16 });
-    add(base+2.5, { kind:'bass', midi:root+7, duration:1.05*BEAT, level:.1 });
-    MELODY[bar].forEach(([beat,midi,duration]) => add(base+beat, { kind:'mallet', midi, duration:duration*BEAT, level:.1 }));
-    [.5,1.5,2.5,3.5].forEach((beat,i) => add(base+beat, { kind:'brush', duration:.13, level:i%2?.025:.018 }));
-  });
-
+  const MUSIC_LEVEL=.20,SFX_LEVEL=.58,MASTER_LEVEL=.72;
+  const MAX_MUSIC_VOICES=18,MAX_SFX_VOICES=10,MAX_VOICES=28;
+  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+  const hz=midi=>440*Math.pow(2,(midi-69)/12);
+  const sourceUrl=()=>typeof global.LuckyBGMSource==='string'&&global.LuckyBGMSource.trim()?global.LuckyBGMSource:'./game-bgm.mp3';
+  const publicSource=url=>url.startsWith('data:')?'embedded audio (data URI)':url;
   function smooth(param, value, now, seconds) {
     try {
       if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(now);
@@ -97,22 +64,23 @@
     function note(event, time, group) {
       reserve(group);
       const start=Math.max(time,context.currentTime+.002), duration=Math.max(.055,event.duration||.3);
-      const kind=event.kind || 'mallet', bass=kind==='bass', end=start+duration+.12;
+      const kind=event.kind || 'mallet', bass=kind==='bass', pluck=kind==='pluck', chip=kind==='chip', kick=kind==='kick', end=start+duration+.12;
       const envelope=context.createGain(), filter=context.createBiquadFilter();
-      filter.type='lowpass'; filter.frequency.value=bass?680:(kind==='piano'?2200:2600); filter.Q.value=.45;
+      filter.type='lowpass'; filter.frequency.value=bass?680:(kick?420:(chip?1800:(pluck?3200:(kind==='piano'?2200:2600)))); filter.Q.value=.45;
+      if(pluck){filter.frequency.setValueAtTime(3200,start);filter.frequency.exponentialRampToValueAtTime(1000,start+duration);}
       envelope.gain.setValueAtTime(0,start);
-      envelope.gain.linearRampToValueAtTime(event.level||.08,start+(bass?.022:.014));
+      envelope.gain.linearRampToValueAtTime(event.level||.08,start+(kick?.006:(bass?.022:(pluck?.009:.014))));
       envelope.gain.exponentialRampToValueAtTime(Math.max(.00012,(event.level||.08)*.19),start+duration*.55);
       envelope.gain.exponentialRampToValueAtTime(.0001,start+duration);
       envelope.gain.linearRampToValueAtTime(0,end);
       const fundamental=context.createOscillator(), frequency=event.frequency||hz(event.midi||72);
-      fundamental.type=bass?'triangle':'sine'; fundamental.frequency.setValueAtTime(frequency,start);
+      fundamental.type=(bass||pluck)?'triangle':(chip?'square':'sine'); fundamental.frequency.setValueAtTime(frequency,start);
       if(event.endFrequency)fundamental.frequency.exponentialRampToValueAtTime(Math.max(25,event.endFrequency),start+duration);
       const sources=[fundamental],nodes=[fundamental,filter,envelope];
       fundamental.connect(filter);
-      if (!bass && kind!=='sweep') {
+      if (!bass && !chip && !kick && kind!=='sweep') {
         const overtone=context.createOscillator(), partial=context.createGain();
-        overtone.type='sine'; overtone.frequency.value=frequency*2; partial.gain.value=kind==='piano'?.12:.07;
+        overtone.type='sine'; overtone.frequency.value=frequency*(pluck?3:2); partial.gain.value=pluck?.065:(kind==='piano'?.12:.07);
         overtone.connect(partial).connect(filter); sources.push(overtone); nodes.push(overtone,partial);
       }
       filter.connect(envelope).connect(group==='music'?music:sfx);
@@ -142,84 +110,74 @@
     return { music,sfx,master,schedule,stopGroup,stats,dispose };
   }
 
+
   function create() {
-    let context=null,rig=null,timer=null,disposed=false,unlocking=null;
+    let context=null,rig=null,media=null,mediaNode=null,disposed=false,unlocking=null,playPending=null;
     let enabled=true,musicEnabled=true,paused=false,volume=.72,running=false;
-    let phase=0,startPhase=0,startedAt=0,nextStep=0;
-    let scheduledNotes=0,scheduledSfx=0,schedulerStarts=0,lastContact=-99,lastError='';
-    const events={throw:0,hit:0,miss:0,finish:0,contact:0,perfect:0};
-    function currentPhase() {
-      return running&&context ? mod(startPhase+Math.max(0,context.currentTime-startedAt)/BEAT,LOOP_BEATS) : phase;
+    let scheduledSfx=0,schedulerStarts=0,lastContact=-99,lastError='',bgmError='',playbackBlocked=false,playSerial=0;
+    const bgmSource=sourceUrl(),events={throw:0,hit:0,miss:0,finish:0,contact:0,perfect:0};
+    function wantsMusic(){return !disposed&&enabled&&musicEnabled&&!paused;}
+    function shouldRun(){return wantsMusic()&&context&&context.state==='running'&&media&&mediaNode;}
+    function initMedia(){
+      if(media&&mediaNode)return;
+      if(media){mediaNode=context.createMediaElementSource(media);mediaNode.connect(rig.music);return;}
+      if(typeof global.Audio!=='function')throw new Error('HTML audio playback is unavailable');
+      media=new global.Audio();media.preload='auto';media.loop=true;media.volume=1;media.src=bgmSource;
+      mediaNode=context.createMediaElementSource(media);mediaNode.connect(rig.music);
+      media.addEventListener('playing',()=>{if(disposed)return;running=Boolean(shouldRun()&&!media.paused);if(running){playbackBlocked=false;bgmError='';lastError='';}});
+      media.addEventListener('pause',()=>{running=false;});
+      media.addEventListener('error',()=>{if(disposed)return;running=false;bgmError='Background music could not load (media error '+(media.error?media.error.code:'unknown')+').';lastError=bgmError;});
     }
-    function shouldRun() { return !disposed&&enabled&&musicEnabled&&!paused&&context&&context.state==='running'; }
-    function tick() {
-      if(!running||!shouldRun()){ sync(); return; }
-      const now=context.currentTime,cutoff=now+LOOKAHEAD;
-      const actualBeat=startPhase+Math.max(0,now-startedAt)/BEAT;
-      if(startedAt+(nextStep*STEP-startPhase)*BEAT<now-.035) nextStep=Math.ceil(actualBeat/STEP);
-      let safety=0;
-      while(startedAt+(nextStep*STEP-startPhase)*BEAT<cutoff&&safety++<12){
-        const time=startedAt+(nextStep*STEP-startPhase)*BEAT;
-        score[mod(nextStep,score.length)].forEach(event=>{rig.schedule(event,time,'music');scheduledNotes++;});
-        nextStep++;
-      }
+    function stopMusic(){playSerial++;running=false;if(media)media.pause();}
+    function startMusic(retry){
+      if(!shouldRun())return Promise.resolve(false);
+      if(playPending)return playPending;
+      if(playbackBlocked&&!retry)return Promise.resolve(false);
+      if(!media.paused){running=true;return Promise.resolve(true);}
+      if(retry){playbackBlocked=false;bgmError='';if(media.error)media.load();}
+      const serial=++playSerial;let request;
+      try{request=media.play();}catch(error){request=Promise.reject(error);}
+      const pending=Promise.resolve(request).then(()=>{
+        if(disposed||serial!==playSerial)return false;
+        if(!shouldRun()){media.pause();running=false;return false;}
+        running=true;schedulerStarts++;playbackBlocked=false;bgmError='';lastError='';return true;
+      }).catch(error=>{
+        if(disposed||serial!==playSerial||!wantsMusic())return false;
+        running=false;playbackBlocked=error&&error.name==='NotAllowedError';
+        bgmError=String(error&&error.message||error);lastError=bgmError;return false;
+      }).finally(()=>{
+        if(playPending===pending)playPending=null;
+        // A rapid pause/resume can abort an older play request. Resume once it settles.
+        if(!disposed&&serial!==playSerial&&shouldRun()&&!running&&!playbackBlocked)startMusic(false);
+      });
+      playPending=pending;return pending;
     }
-    function stopMusic() {
-      if(running)phase=currentPhase();
-      running=false;
-      if(timer!==null){global.clearInterval(timer);timer=null;}
-      if(rig)rig.stopGroup('music',false);
+    function sync(retry){
+      if(disposed)return Promise.resolve(false);
+      if(rig){smooth(rig.master.gain,enabled&&!paused?MASTER_LEVEL:0,context.currentTime,.025);smooth(rig.music.gain,MUSIC_LEVEL*volume,context.currentTime,.025);}
+      if(!shouldRun()){stopMusic();return Promise.resolve(false);}
+      return startMusic(Boolean(retry));
     }
-    function sync() {
-      if(disposed)return;
-      if(rig){smooth(rig.master.gain,enabled&&!paused?MASTER_LEVEL:0,context.currentTime,.025);}
-      if(!shouldRun()){if(running||timer!==null)stopMusic();return;}
-      if(running)return;
-      smooth(rig.music.gain,MUSIC_LEVEL*volume,context.currentTime,.025);
-      startPhase=phase;startedAt=context.currentTime+.035;nextStep=Math.ceil((startPhase-1e-7)/STEP);
-      running=true;schedulerStarts++;tick();
-      if(running&&timer===null)timer=global.setInterval(tick,TICK_MS);
-    }
-    async function unlock() {
-      if(disposed)return false;
-      if(unlocking)return unlocking;
+    async function unlock(){
+      if(disposed)return false;if(unlocking)return unlocking;
       unlocking=(async()=>{
         try{
           if(!context){
-            const Native=global.AudioContext||global.webkitAudioContext;
-            if(!Native){lastError='Web Audio is unavailable';return false;}
-            context=new Native({latencyHint:'interactive'});rig=createRig(context,false);rig.master.gain.value=0;rig.music.gain.value=MUSIC_LEVEL*volume;
-            context.onstatechange=()=>{if(!disposed)sync();};
+            const Native=global.AudioContext||global.webkitAudioContext;if(!Native){lastError='Web Audio is unavailable';return false;}
+            context=new Native({latencyHint:'interactive'});rig=createRig(context,false);rig.master.gain.value=0;
+            context.onstatechange=()=>{if(!disposed)sync(false);};
           }
+          initMedia();
           if(context.state==='suspended')await context.resume();
-          // Always yield once so a context that starts in the running state cannot leave a stale unlock promise.
-          await Promise.resolve();
-          sync();return context.state==='running';
-        }catch(error){lastError=String(error&&error.message||error);return false;}
+          await sync(true);return context.state==='running';
+        }catch(error){lastError=String(error&&error.message||error);bgmError=lastError;return false;}
         finally{unlocking=null;}
-      })();
-      return unlocking;
+      })();return unlocking;
     }
-    function setEnabled(value) {
-      if(disposed)return;enabled=Boolean(value);
-      if(!enabled&&rig){stopMusic();rig.stopGroup(null,false);}
-      sync();
-    }
-    function setPaused(value) {
-      if(disposed)return;paused=Boolean(value);
-      if(paused&&rig){stopMusic();rig.stopGroup(null,false);}
-      sync();
-    }
-    function setMusicEnabled(value) {
-      if(disposed)return;musicEnabled=Boolean(value);
-      if(!musicEnabled)stopMusic();sync();
-    }
-    function setVolume(value) {
-      if(disposed)return;
-      const number=Number(value);if(!Number.isFinite(number))return;
-      volume=clamp(number,0,1);
-      if(rig)smooth(rig.music.gain,MUSIC_LEVEL*volume,context.currentTime,.025);
-    }
+    function setEnabled(value){if(disposed)return;enabled=Boolean(value);if(!enabled&&rig)rig.stopGroup(null,false);sync(enabled);}
+    function setPaused(value){if(disposed)return;paused=Boolean(value);if(paused&&rig)rig.stopGroup(null,false);sync(!paused);}
+    function setMusicEnabled(value){if(disposed)return;musicEnabled=Boolean(value);sync(musicEnabled);}
+    function setVolume(value){if(disposed)return;const n=Number(value);if(!Number.isFinite(n))return;volume=clamp(n,0,1);if(rig)smooth(rig.music.gain,MUSIC_LEVEL*volume,context.currentTime,.025);}
     function play(type,amount) {
       if(disposed||!enabled||paused||!rig||context.state!=='running')return false;
       const time=context.currentTime+.003;
@@ -250,40 +208,39 @@
       }
       return true;
     }
-    function getState() {
-      const position=currentPhase();
-      return Object.assign({ available:Boolean(global.AudioContext||global.webkitAudioContext),unlocked:Boolean(context),
+
+    function getState(){
+      const position=media&&Number.isFinite(media.currentTime)?media.currentTime:0;
+      const duration=media&&Number.isFinite(media.duration)?media.duration:null;
+      return Object.assign({available:Boolean(global.AudioContext||global.webkitAudioContext),unlocked:Boolean(context),
         contextState:context?context.state:'not-created',enabled,musicEnabled,paused,volume,musicVolume:volume,running,
         musicGain:rig?rig.music.gain.value:0,sfxGain:rig?rig.sfx.gain.value:0,masterGain:rig?rig.master.gain.value:0,
-        phase:+position.toFixed(5),bar:Math.floor(position/BAR_BEATS)+1,beatInBar:+mod(position,BAR_BEATS).toFixed(5),
-        positionSeconds:+(position*BEAT).toFixed(4),bpm:BPM,bars:BARS,beatsPerBar:BAR_BEATS,
-        loopSeconds:+LOOP_SECONDS.toFixed(5),scheduledNotes,scheduledSfx,schedulerStarts,timerActive:timer!==null,
-        lookaheadSeconds:LOOKAHEAD,schedulerIntervalMs:TICK_MS,maxVoices:MAX_VOICES,
-        events:Object.assign({},events),disposed,lastError },rig?rig.stats():{
-          activeVoices:0,activeMusicVoices:0,activeSfxVoices:0,activeNodes:0,peakVoices:0,peakNodes:0,stolenVoices:0 });
+        phase:+position.toFixed(5),bar:null,beatInBar:null,positionSeconds:+position.toFixed(4),bpm:null,bars:null,beatsPerBar:null,
+        loopSeconds:duration,scheduledNotes:0,scheduledSfx,schedulerStarts,timerActive:false,lookaheadSeconds:0,schedulerIntervalMs:0,maxVoices:MAX_VOICES,
+        bgmType:'user-mp3',bgmSource:publicSource(bgmSource),bgmEmbedded:bgmSource.startsWith('data:'),bgmLoop:media?media.loop:true,
+        bgmReadyState:media?media.readyState:0,bgmNetworkState:media?media.networkState:0,bgmPaused:media?media.paused:true,
+        bgmDuration:duration,bgmPlaybackBlocked:playbackBlocked,bgmPlayPending:Boolean(playPending),bgmError,
+        events:Object.assign({},events),disposed,lastError},rig?rig.stats():{activeVoices:0,activeMusicVoices:0,activeSfxVoices:0,activeNodes:0,peakVoices:0,peakNodes:0,stolenVoices:0});
     }
-    function dispose() {
-      if(disposed)return;
-      stopMusic();disposed=true;
+    function dispose(){
+      if(disposed)return;stopMusic();disposed=true;
+      if(mediaNode){try{mediaNode.disconnect();}catch(_){}mediaNode=null;}
+      if(media){media.removeAttribute('src');try{media.load();}catch(_){}media=null;}
       if(rig){rig.dispose();rig=null;}
-      if(context){context.onstatechange=null;try{const closing=context.close();if(closing&&closing.catch)closing.catch(()=>{});}catch(_){} }
+      if(context){context.onstatechange=null;try{const closing=context.close();if(closing&&closing.catch)closing.catch(()=>{});}catch(_){}}
     }
     return Object.freeze({unlock,setEnabled,setPaused,setMusicEnabled,setVolume,play,getState,dispose});
   }
-
-  // Optional QA export: the same synthesis rendered offline, with a tail after the last bar.
-  async function renderPreview(options) {
+  // Optional QA export decodes the selected user source. Failure is explicit; no synthesized fallback.
+  async function renderPreview(options){
     const opts=options||{},Native=global.OfflineAudioContext||global.webkitOfflineAudioContext;
-    if(!Native)throw new Error('OfflineAudioContext is unavailable');
-    const sampleRate=clamp(Number(opts.sampleRate)||24000,8000,48000);
-    const seconds=clamp(Number(opts.seconds)||LOOP_SECONDS+1.5,1,LOOP_SECONDS*2+2);
-    const context=new Native(2,Math.ceil(seconds*sampleRate),sampleRate),rig=createRig(context,true);
-    for(let step=0;step*STEP*BEAT<Math.min(seconds,LOOP_SECONDS);step++){
-      score[mod(step,score.length)].forEach(event=>rig.schedule(event,step*STEP*BEAT+.01,'music'));
-    }
-    if(opts.includeSfx){
-      [72,76,79].forEach((midi,i)=>rig.schedule({kind:'mallet',midi,duration:.24,level:.105},7+i*.047,'sfx'));
-    }
+    if(!Native||typeof global.fetch!=='function')throw new Error('Offline music decoding is unavailable');
+    const sampleRate=clamp(Number(opts.sampleRate)||24000,8000,48000),response=await global.fetch(sourceUrl());
+    if(!response.ok)throw new Error('Background music fetch failed: '+response.status);
+    const decoder=new Native(2,1,sampleRate),decoded=await decoder.decodeAudioData(await response.arrayBuffer());
+    const seconds=clamp(Number(opts.seconds)||decoded.duration,1,600),context=new Native(2,Math.ceil(seconds*sampleRate),sampleRate),rig=createRig(context,true);
+    const source=context.createBufferSource();source.buffer=decoded;source.loop=true;source.connect(rig.music);source.start(0);source.stop(seconds);
+    if(opts.includeSfx)[72,76,79].forEach((midi,i)=>rig.schedule({kind:'mallet',midi,duration:.24,level:.105},7+i*.047,'sfx'));
     return context.startRendering();
   }
   global.LuckyAudio=Object.freeze({create,renderPreview});

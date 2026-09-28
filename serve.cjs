@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const root = __dirname;
 const port = Number(process.env.PORT) || 4173;
-const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'text/javascript', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.ico':'image/x-icon' };
+const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'text/javascript', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.ico':'image/x-icon', '.mp3':'audio/mpeg' };
 http.createServer((req,res) => {
   let name;
   try { name = decodeURIComponent(new URL(req.url,'http://localhost').pathname); } catch {res.writeHead(400);res.end();return;}
